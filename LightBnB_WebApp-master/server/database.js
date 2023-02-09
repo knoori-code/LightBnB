@@ -23,9 +23,7 @@ const getUserWithEmail = function (email) {
       if (result.rows.length > 0) {
         return result.rows[0];  // Use index to get the object in array
       }
-      if (result.rows.length === 0) {
-        return null;
-      }
+      return null;
     })
     .catch((err) => {
       console.log(err.message);
@@ -47,9 +45,8 @@ const getUserWithId = function (id) {
       if (result.rows.length > 0) {
         return result.rows[0];  // Use index to get the object in array
       }
-      if (result.rows.length === 0) {
-        return null;
-      }
+      return null;
+      
     })
     .catch((err) => {
       console.log(err.message);
