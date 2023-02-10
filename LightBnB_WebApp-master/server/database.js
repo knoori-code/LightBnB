@@ -176,9 +176,21 @@ exports.getAllProperties = getAllProperties;
  * @return {Promise<{}>} A promise to the property.
  */
 const addProperty = function (property) {
-  const propertyId = Object.keys(properties).length + 1;
-  property.id = propertyId;
-  properties[propertyId] = property;
-  return Promise.resolve(property);
+  const queryParams = [property.owner_id, property.title, property.description, property.thumbnail_photo_url, property.cover_photo_url, property.cost_per_night, property.parking_spaces, property.number_of_bathrooms, property.number_of_bedrooms, property.country, property.street, property.city, property.province, property.post_code, property.active]
+
+  const queryString = `INSERT INTO properties (owner_id, title, description, thumbnail_photo_url, cover_photo_url, cost_per_night, parking_spaces, number_of_bathrooms, number_of_bedrooms, country, street, city, province, post_code, active)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+  RETURNING *;`
+
+  return pool
+    .query(queryString, queryParams)
+    .then((result) => {
+      console.log(result.rows)
+      return result.rows;
+    })
+    .catch((err) => {
+      console.log(err.message);
+    });
 };
+// console.log(addProperty({owner_id: 1, title: 'message', description:'message', thumbnail_photo_url: 'message', cover_photo_url: 'message', cost_per_night: 10000, parking_spaces: 1, number_of_bathrooms: 1, number_of_bedrooms: 1, country: 'Canada', street: 'Buckhorn', city: 'Oakville', province: 'Ontario', post_code: 'l8b0b7', active: true}))
 exports.addProperty = addProperty;
