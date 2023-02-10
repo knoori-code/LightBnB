@@ -21,7 +21,7 @@ const getUserWithEmail = function (email) {
     .query(`SELECT * FROM users WHERE email = $1;`, [email])
     .then((result) => {
       if (result.rows.length > 0) {
-        return result.rows[0];  // Use index to get the object in array
+        return result.rows[0]; // Use index to get the object in array
       }
       return null;
     })
@@ -43,10 +43,9 @@ const getUserWithId = function (id) {
     .query(`SELECT * FROM users WHERE id = $1;`, [id])
     .then((result) => {
       if (result.rows.length > 0) {
-        return result.rows[0];  // Use index to get the object in array
+        return result.rows[0]; // Use index to get the object in array
       }
       return null;
-      
     })
     .catch((err) => {
       console.log(err.message);
@@ -62,11 +61,14 @@ exports.getUserWithId = getUserWithId;
  */
 const addUser = function (user) {
   return pool
-    .query(`INSERT INTO users (name, email, password) 
+    .query(
+      `INSERT INTO users (name, email, password) 
             VALUES ($1, $2, $3)
-            RETURNING *`, [user.name, user.email, user.password,])
+            RETURNING *`,
+      [user.name, user.email, user.password]
+    )
     .then((result) => {
-      return result.rows[0];  // Use index to get the object in array
+      return result.rows[0]; // Use index to get the object in array
     })
     .catch((err) => {
       console.log(err.message);
@@ -84,16 +86,19 @@ exports.addUser = addUser;
  */
 const getAllReservations = function (guest_id, limit = 10) {
   return pool
-    .query(`SELECT reservations.*, properties.*, reservations.*
+    .query(
+      `SELECT reservations.*, properties.*, reservations.*
           FROM reservations
           JOIN properties ON reservations.property_id = properties.id
           JOIN property_reviews ON properties.id = property_reviews.property_id
           WHERE reservations.guest_id = $1
           GROUP BY properties.id, reservations.id
           ORDER BY reservations.start_date
-          LIMIT $2;`, [guest_id, limit])
+          LIMIT $2;`,
+      [guest_id, limit]
+    )
     .then((result) => {
-    return result.rows;
+      return result.rows;
     })
     .catch((err) => {
       console.log(err.message);
@@ -111,15 +116,58 @@ exports.getAllReservations = getAllReservations;
  * @return {Promise<[{}]>}  A promise to the properties.
  */
 const getAllProperties = function (options, limit = 10) {
+  const queryParams = [];
+
+  let queryString = `
+    SELECT properties.*, avg(property_reviews.rating) as average_rating
+    FROM properties
+    JOIN property_reviews ON properties.id = property_reviews.property_id
+  `;
+
+  // Check if city passed in options object
+  if (options.city) {
+    queryParams.push(`%${options.city}%`);
+    queryString += `WHERE city LIKE $${queryParams.length} `;
+  }
+
+  if (options.owner_id) {
+    queryParams.push(options.owner_id);
+    queryString += `AND owner_id = $${queryParams.length} `;
+  }
+
+  if (options.minimum_price_per_night) {
+    queryParams.push(options.minimum_price_per_night);
+    queryString += `AND cost_per_night >= $${queryParams.length} `;
+  }
+  
+  if (options.maximum_price_per_night) {
+    queryParams.push(options.maximum_price_per_night);
+    queryString += `AND cost_per_night <= $${queryParams.length} `;
+  }
+  
+  if (options.minimum_rating ) {
+    queryParams.push(options.minimum_rating);
+    queryString += `AND rating >= $${queryParams.length} `;
+  }
+  console.log(queryString, "\n params: ", queryParams);
+
+  queryParams.push(limit);
+  queryString += `
+  GROUP BY properties.id
+  ORDER BY cost_per_night
+  LIMIT $${queryParams.length};
+  `;
+
   return pool
-    .query(`SELECT * FROM properties LIMIT $1;`, [limit])
-    .then((result) => {
-      return result.rows;
-    })
-    .catch((err) => {
-      console.log(err.message);
-    });
+  .query(queryString, queryParams)
+  .then((result) => {
+    return result.rows;
+  })
+  .catch((err) => {
+    console.log(err.message);
+  });
 };
+// console.log(getAllProperties({minimum_rating: 3}));
 exports.getAllProperties = getAllProperties;
 
 /**
